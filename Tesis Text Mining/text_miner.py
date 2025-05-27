@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(
     level=logging.INFO,  
     format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='app.log',  # Opcional: guarda en archivo
+    filename='app.log', 
     filemode='w' 
 )
 
@@ -32,7 +32,7 @@ for pdf in pdfs:
 logging.info("************************INICIO EXTRACCIÓN DE TEXTO************************")
 
 # Cargar PDF y extraer texto
-loader = PyPDFLoader('periodico.pdf')
+loader = PyPDFLoader(pdfs[0])
 pages = loader.load()
 
 # Número de páginas por bloque
@@ -47,7 +47,7 @@ structured_text = []
 def gemma(text: str) -> str:
     url = "http://localhost:11434/api/generate"
     
-    prompt = f"""Reorganiza el siguiente texto para asegurar que tenga coherencia semántica y fluya de forma lógica, mantén el idioma original (español) y NO agregués, eliminés o resumas el contenido; únicamente debes reordenar las partes del texto según sea necesario para mejorar su coherencia, no des explicaciones de cómo lo hiciste.
+    prompt = f"""Reorganize the following text to ensure it has semantic coherence and logical flow; you may only change the order of the parts of the text to improve its logical sense and cohesion. The text is in Spanish and must remain in Spanish.
     Texto: {text}
 """
 
@@ -66,15 +66,20 @@ def gemma(text: str) -> str:
 
 logging.info("************************PROCESANDO TEXTO BLOQUE POR BLOQUE************************")
 for i in range(0, total_paginas, bloque_tamaño):
+    j = i + 1
     bloque = pages[i:i + bloque_tamaño]
     texto_bloque = '\n\n'.join([p.page_content for p in bloque])
     bloques_texto.append(texto_bloque)
-    
-    if __name__ == "__main__":
-        result = gemma(bloques_texto[-1])
-        structured_text.append(result)
-        print("Texto reorganizado:\n")
-        print(result)
+
+    logging.info(f"************************Procesando bloque {j}************************")
+    print(texto_bloque[:300])
+    logging.info(f"************************COMIENZA LLAMADA A GEMMA PARA BLOQUE {j}************************")  
+    result = gemma(texto_bloque)  
+    logging.info(f"************************TERMINA LLAMADA A GEMMA PARA BLOQUE {j}************************")  
+    structured_text.append(result)
+    print("\nTexto reorganizado:\n")
+    print(result)
+
 
 logging.info("************************EXTRACCIÓN TEXTO BLOQUE POR BLOQUE FINALIZADO************************")
 logging.info("************************EXTRACCIÓN FECHA************************")
@@ -147,21 +152,21 @@ Text: {text}
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
-if __name__ == "__main__":
-    for i in range(0, total_pages, size):
-        #Extraer bloque para enviarlo a la llamada de la API
-        bloque = structured_text[i:i + size]
-        texto_bloque = '\n\n'.join([p for p in bloque])
-        bloques_news.append(texto_bloque)
-
-        response = gemma_news(texto_bloque)
-
-        #Conservar el formato json
-        start_index = response.find("[")
-        end_index = response.rfind("]") + 1
-        json_message = response[start_index:end_index]
-        json_news.append(json_message)
-        print(json_message)
+for i in range(0, total_pages, size):
+    #Extraer bloque para enviarlo a la llamada de la API
+    h = i + 1
+    bloque = structured_text[i:i + size]
+    texto_bloque = '\n\n'.join([p for p in bloque])
+    bloques_news.append(texto_bloque)
+    logging.info(f"************************TERMINA LLAMADA A GEMMA PARA BLOQUE {h}************************")  
+    response = gemma_news(texto_bloque)
+    logging.info(f"************************TERMINA LLAMADA A GEMMA PARA BLOQUE {h}************************")  
+    #Conservar el formato json
+    start_index = response.find("[")
+    end_index = response.rfind("]") + 1
+    json_message = response[start_index:end_index]
+    json_news.append(json_message)
+    print(json_message)
 
 logging.info("************************PROCESAMIENTO DE TEXTO FINALIZADO************************")
 logging.info("************************CREACIÓN DE ARCHIVO JSON************************")
