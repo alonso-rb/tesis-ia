@@ -1,0 +1,15 @@
+2025-05-29 00:28:23,501 - INFO - ************************LEYENDO PDFS************************
+2025-05-29 00:28:23,502 - INFO - ************************FINALIZANDO PDFS************************
+2025-05-29 00:28:23,502 - INFO - ************************INICIA EXTRACCIÓN TEXTO************************
+2025-05-29 00:28:25,994 - WARNING - Failed to see startup log message; retrying...
+2025-05-29 00:28:31,014 - WARNING - Failed to see startup log message; retrying...
+2025-05-29 00:28:50,520 - INFO - ************************FINALIZA EXTRACCIÓN TEXTO************************
+2025-05-29 00:28:50,520 - INFO - ************************INICIA EXTRACCIÓN FECHA************************
+2025-05-29 00:28:50,521 - INFO - ************************FINALIZA EXTRACCIÓN FECHA************************
+2025-05-29 00:28:50,521 - INFO - ************************INICIO SEPARACIÓN DE NOTICIAS************************
+2025-05-29 00:28:50,521 - INFO - ************************PROCESANDO TEXTO BLOQUE POR BLOQUE************************
+2025-05-29 00:28:50,524 - INFO - ************************COMIENZA LLAMADA A GEMMA PARA BLOQUE 1************************
+2025-05-29 00:28:50,524 - INFO - ************************CONSTRUCCIÓN DE PROMPT************************
+2025-05-29 00:28:50,527 - INFO - ************************INICIO EJECUCIÓN DE LA LLAMADA************************
+2025-05-29 00:33:12,019 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+2025-05-29 00:33:12,021 - INFO - ************************TERMINA LLAMADA A GEMMA PARA BLOQUE 1************************

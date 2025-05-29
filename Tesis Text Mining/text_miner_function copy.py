@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 from typing import List, Dict, Any
 import logging
+import ollama
 from tika import parser
 from bs4 import BeautifulSoup
 
@@ -22,7 +23,7 @@ timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 log_filename = f'logs/app-{timestamp}.log'
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  
     format='%(asctime)s - %(levelname)s - %(message)s',
     filename=log_filename,
     filemode='w'
@@ -70,31 +71,18 @@ def verificar_y_levantar_ollama():
         print("✅ Ollama ya está corriendo.")
         return True
 
-def gemma_extraer_texo(prompt: str) -> str:
-    if not verificar_y_levantar_ollama():
-        return "[]"
-
-    payload = {"model": MODEL_NAME, "prompt": prompt, "temperature": 0, "top_p": 1, "stop" : ["\n\n"], "stream": False}
-    response = requests.post(OLLAMA_API_URL, json=payload)
-
-    if response.status_code == 200:
-        try:
-            return response.json()["response"]
-        except json.JSONDecodeError:
-            print("⚠️ Respuesta contiene múltiples objetos JSON. Procesando por líneas...")
-            # Intenta parsear línea por línea
-            lines = response.text.strip().splitlines()
-            results = []
-            for line in lines:
-                try:
-                    parsed = json.loads(line)
-                    if "response" in parsed:
-                        results.append(parsed["response"])
-                except json.JSONDecodeError:
-                    continue
-            return "\n".join(results)
-    else:
-        raise Exception(f"Error {response.status_code}: {response.text}")
+def gemma_extraer_texo(prompt: str, text: str) -> str:
+    response = ollama.chat(
+        model='llama3.2-vision',
+        messages=[{
+            'role': 'user',
+            'content': prompt
+        }, {
+            'role': 'user',
+            'content': text
+        }]
+    )
+    return response.message.content
 
 
 def extraer_texto_pdf(pdfs: List[str]) -> List[str]:
@@ -154,6 +142,7 @@ def extraer_fecha_pdf(text : str) -> str:
         fecha = datetime(anio, mes, dia)
         strdate = fecha.strftime("%Y-%m-%d")
         print("Fecha extraída:", strdate)
+        logging.debug(f"Fecha extraída:\n{strdate}")
         logging.info("************************FINALIZA EXTRACCIÓN FECHA************************")
         return strdate
     else:
@@ -178,7 +167,7 @@ Devuelve cada una en un arreglo JSON con esta estructura:
   }
 ]
 
-TODO debe ir en español. NO omitas texto. NO agregues explicaciones. SOLO devuelve el JSON.
+TODO debe ir en español. NO omitas texto. NO agregues explicaciones. SOLO devuelve el JSON. No tengas prejuicios con reportajes objetivos sobre violencia.
 Texto:
 '''
 
@@ -192,9 +181,10 @@ Texto:
         logging.info(f"************************COMIENZA LLAMADA A GEMMA PARA BLOQUE {h}************************")
         logging.info(f"************************CONSTRUCCIÓN DE PROMPT************************")    
         prompt_separate = construir_prompts_extraer(instructions_separate, texto_bloque_clean)
-        print(prompt_separate)
+        logging.debug(f"Prompt enviado al modelo (bloque {h}):\n{prompt_separate}")
         logging.info(f"************************INICIO EJECUCIÓN DE LA LLAMADA************************")  
-        response = gemma_extraer_texo(prompt_separate)
+        response = gemma_extraer_texo(instructions_separate, texto_bloque_clean)
+        logging.debug(f"Respuesta recibida por el modelo (bloque {h}):\n{response}")
         print(response)
         logging.info(f"************************TERMINA LLAMADA A GEMMA PARA BLOQUE {h}************************")
         start_index = response.find("[")
@@ -209,6 +199,7 @@ def formatear_json(strdate: str, json_news: List[str]) -> List[Dict[str, Any]]:
     logging.info("************************FORMATEO JSON INICIADO************************")
     fecha_str = strdate
     parsed_news = []
+    ommited_items = []
 
     for item in json_news:
         try:
@@ -221,7 +212,11 @@ def formatear_json(strdate: str, json_news: List[str]) -> List[Dict[str, Any]]:
             parsed_news.extend(noticias)
         except json.JSONDecodeError as e:
             print("Error al decodificar este item, será omitido:\n", item)
+            ommited_items.append(item)
             continue
+    
+    logging.debug(f"Noticias omitidas por no cumplir con el formato:\n{ommited_items}")
+    logging.debug(f"Noticias en formato JSON completas:\n{parsed_news}")
     logging.info("************************FORMATEO JSON FINALIZADO************************")
     return parsed_news
 
