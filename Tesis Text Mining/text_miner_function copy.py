@@ -1,4 +1,3 @@
-#Downloaded libraries: langchain and langchain-community
 import os
 import re
 import requests
